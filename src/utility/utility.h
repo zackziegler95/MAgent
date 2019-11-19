@@ -95,11 +95,16 @@ private:
 #define LOG_TRACE_ENABLE 0
 #endif
 
+#ifndef LOG_DEBUG_ENABLE
+#define LOG_DEBUG_ENABLE 1
+#endif
+
 #ifndef LOG_WARNING_ENABLE
 #define LOG_WARNING_ENABLE 0
 #endif
 
 #define LOG_TRACE   if (!LOG_TRACE_ENABLE) ; else magent::utility::Logger<>(nullptr, 0)
+#define LOG_DEBUG   if (!LOG_DEBUG_ENABLE) ; else magent::utility::Logger<>(nullptr, 0)
 #define LOG_FATAL   magent::utility::Logger<true>(__FILE__, __LINE__)
 #define LOG_ERROR   magent::utility::Logger<>(__FILE__, __LINE__)
 #define LOG_WARNING if (!LOG_WARNING_ENABLE) ; else magent::utility::Logger<>(__FILE__, __LINE__)

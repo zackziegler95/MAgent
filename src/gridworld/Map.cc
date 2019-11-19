@@ -20,10 +20,11 @@ inline void get_size_for_dir(Agent *agent, int &width, int &height);
 
 #define MAP_INNER_Y_ADD w
 
-void Map::reset(int width, int height, bool food_mode) {
+void Map::reset(int width, int height, bool food_mode, float pheromone_decay) {
     this->w = width;
     this->h = height;
     this->food_mode = food_mode;
+    this->pheromone_decay = pheromone_decay;
 
     if (slots != nullptr)
         delete [] slots;
@@ -405,6 +406,25 @@ Reward Map::do_turn(Agent *agent, int wise) {
     return 0.0;
 }
 
+void Map::add_pheromone(Agent *agent) {
+    PositionInteger pos_int = pos2int(agent->get_pos());
+    slots[pos_int].pheromone++;
+}
+
+void Map::decay_pheromone() {
+    #pragma omp parallel for
+    for (int i = 0; i < w*h; i++) {
+        slots[i].pheromone -= pheromone_decay;
+        if (slots[i].pheromone < 0) {
+            slots[i].pheromone = 0;
+        }
+    }
+}
+
+float Map::get_pheromone(int x, int y) const {
+    return slots[pos2int(x, y)].pheromone;
+}
+
 int Map::get_align(Agent *agent) {
     Position pos = agent->get_pos();
     GroupHandle group = agent->get_group();
@@ -619,10 +639,12 @@ void Map::get_wall(std::vector<Position> &walls) const {
  */
 void Map::render() {
     for (int x = 0; x < w; x++)
-        printf("=");        puts("");
+        printf("=");
+    puts("");
     printf("    ");
     for (int x = 0; x < w; x++)
-        printf("%2d ", x);  puts("");
+        printf("%2d ", x);
+    puts("");
 
     for (int y = 0; y < h; y++) {
         printf("%2d ", y);
@@ -633,7 +655,11 @@ void Map::render() {
             switch (s.slot_type) {
                 case BLANK:
                     if (s.occupier == nullptr) {
-                        buf[0] = ' ';
+                        //buf[0] = ' ';
+                        std::string num = std::to_string(s.pheromone);
+                        buf[0] = num[0];
+                        buf[1] = num[1];
+                        buf[2] = num[2];
                     } else {
                         switch (s.occ_type) {
                             case OCC_AGENT: {
@@ -670,7 +696,8 @@ void Map::render() {
     }
 
     for (int x = 0; x < w; x++)
-        printf("=");        puts("\n");
+        printf("=");
+    puts("\n");
 }
 
 } // namespace magent

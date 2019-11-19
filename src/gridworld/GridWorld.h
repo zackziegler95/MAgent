@@ -97,6 +97,7 @@ private:
     bool large_map_mode; // default = False
     bool mean_mode;      
     int embedding_size;  // default = 0
+    float pheromone_decay;  // default = 0
 
     // game states : map, agent and group
     Map map;

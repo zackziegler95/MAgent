@@ -47,6 +47,8 @@ private:
     int frame_ct;
     int frame_per_file;
 
+    int width, height;
+
     std::vector<RenderAttackEvent> attack_events;
 };
 

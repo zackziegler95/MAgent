@@ -17,7 +17,8 @@ def load_config(size):
     cfg = gw.Config()
 
     cfg.set({"map_width": size, "map_height": size})
-    cfg.set({"minimap_mode": True})
+    cfg.set({"minimap_mode": False})
+    cfg.set({"pheromone_decay": 0.00001})
 
     agent = cfg.register_agent_type(
         name="agent",
@@ -25,7 +26,7 @@ def load_config(size):
               'view_range': gw.CircleRange(7), 'attack_range': gw.CircleRange(1),
               'damage': 6, 'step_recover': 0,
               'step_reward': -0.01,  'dead_penalty': -1, 'attack_penalty': -0.1,
-              'attack_in_group': 1})
+              'attack_in_group': 1, 'can_lay_pheromone': 1})
 
     food = cfg.register_agent_type(
         name='food',
@@ -47,80 +48,26 @@ def load_config(size):
 def generate_map(env, map_size, food_handle, handles):
     center_x, center_y = map_size // 2, map_size // 2
 
-    def add_square(pos, side, gap):
+    def add_square(pos, side, gap, offset_x=0, offset_y=0):
+        bx = center_x + offset_x
+        by = center_y + offset_y
         side = int(side)
-        for x in range(center_x - side//2, center_x + side//2 + 1, gap):
-            pos.append([x, center_y - side//2])
-            pos.append([x, center_y + side//2])
-        for y in range(center_y - side//2, center_y + side//2 + 1, gap):
-            pos.append([center_x - side//2, y])
-            pos.append([center_x + side//2, y])
+        for x in range(bx - side//2, bx + side//2 + 1, gap):
+            pos.append([x, by - side//2])
+            pos.append([x, by + side//2])
+        for y in range(by - side//2, by + side//2 + 1, gap):
+            pos.append([bx - side//2, y])
+            pos.append([bx + side//2, y])
 
     # agent
     pos = []
-    add_square(pos, map_size * 0.9, 3)
-    add_square(pos, map_size * 0.8, 4)
-    add_square(pos, map_size * 0.7, 6)
+    add_square(pos, 4, 2)
     env.add_agents(handles[0], method="custom", pos=pos)
 
     # food
     pos = []
-    add_square(pos, map_size * 0.65, 10)
-    add_square(pos, map_size * 0.6,  10)
-    add_square(pos, map_size * 0.55, 10)
-    add_square(pos, map_size * 0.5,  4)
-    add_square(pos, map_size * 0.45, 3)
-    add_square(pos, map_size * 0.4, 1)
-    add_square(pos, map_size * 0.3, 1)
-    add_square(pos, map_size * 0.3 - 2, 1)
-    add_square(pos, map_size * 0.3 - 4, 1)
-    add_square(pos, map_size * 0.3 - 6, 1)
+    add_square(pos, 4, 2, offset_x=15, offset_y=15)
     env.add_agents(food_handle, method="custom", pos=pos)
-
-    # legend
-    legend = [
-        [1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
-        [1, 0, 1, 1, 1, 1, 1, 0, 1, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0,],
-        [1, 0, 0, 1, 1, 1, 0, 0, 1, 0, 0, 1, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0,],
-        [1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 1, 0, 0, 0, 1, 1, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0, 0,],
-        [1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 0, 0, 0, 1, 1, 0, 1, 1, 0, 0, 0, 1, 1, 0, 1, 1, 0, 0, 0, 1, 1, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 0,],
-        [1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 0, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 0,],
-        [1, 0, 0, 1, 1, 1, 0, 0, 1, 0, 1, 1, 0, 0, 0, 1, 1, 0, 1, 1, 0, 0, 0, 1, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 0,],
-        [1, 0, 0, 1, 1, 1, 0, 0, 1, 0, 1, 1, 0, 0, 0, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 0, 1, 1, 1, 0,],
-        [1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
-    ]
-
-    org = [
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 0, 0,],
-        [0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0,],
-        [0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 1, 0, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 0, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0,],
-        [0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0,],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 1, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 1, 1, 1, 1, 0, 0,],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
-    ]
-
-    def draw(base_x, base_y, scale, data):
-        w, h = len(data), len(data[0])
-        pos = []
-        for i in range(w):
-            for j in range(h):
-                if data[i][j] == 1:
-                    start_x = i * scale + base_x
-                    start_y = j * scale + base_y
-                    for x in range(start_x, start_x + scale):
-                        for y in range(start_y, start_y + scale):
-                            pos.append([y, x])
-
-        env.add_agents(food_handle, method="custom", pos=pos)
-
-    scale = 1
-    w, h = len(legend), len(legend[0])
-    offset = -3
-    draw(offset + map_size // 2 - w // 2 * scale, map_size // 2 - h // 2 * scale, scale, legend)
-    draw(offset + map_size // 2 - w // 2 * scale + len(legend), map_size // 2 - h // 2 * scale, scale, org)
 
 
 def play_a_round(env, map_size, food_handle, handles, models, train_id=-1,
@@ -216,9 +163,9 @@ if __name__ == "__main__":
     parser.add_argument("--load_from", type=int)
     parser.add_argument("--train", action="store_true")
     parser.add_argument("--print_every", type=int, default=100)
-    parser.add_argument("--map_size", type=int, default=200)
+    parser.add_argument("--map_size", type=int, default=40)
     parser.add_argument("--greedy", action="store_true")
-    parser.add_argument("--name", type=str, default="gather")
+    parser.add_argument("--name", type=str, default="gather2")
     parser.add_argument("--record", action="store_true")
     parser.add_argument("--eval", action="store_true")
     args = parser.parse_args()
@@ -231,7 +178,7 @@ if __name__ == "__main__":
 
     # init env
     env = magent.GridWorld(load_config(size=args.map_size))
-    env.set_render_dir("build/render")
+    env.set_render_dir("build/render/"+args.name)
 
     handles = env.get_handles()
     food_handle = handles[0]

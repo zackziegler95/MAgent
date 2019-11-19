@@ -75,6 +75,9 @@ void RenderGenerator::gen_config(std::vector<Group> &group, int w, int h) {
     print_json(f_config, "minimap-width", 300);
     print_json(f_config, "minimap-height", 250);
 
+    width = w;
+    height = h;
+
     // groups
     f_config << "\"group\" : [" << std::endl;
     for (int i = 0; i < group.size(); i++) {
@@ -140,9 +143,16 @@ void RenderGenerator::render_a_frame(std::vector<Group> &groups, const Map &map)
         }
     }
     int num_attacks = (int)attack_events.size();
+    
+    int num_pheromones = 0;
+    for (int i = 0; i < groups.size(); i++) {
+        if (groups[i].get_type().can_lay_pheromone) {
+            num_pheromones += width*height;
+        }
+    }
 
     // frame info
-    fout << "F" << " " << num_agents << " " << num_attacks << " " << 0 << std::endl;
+    fout << "F" << " " << num_agents << " " << num_attacks << " " << num_pheromones << std::endl;
 
     // agent
     const int dir2angle[] = {0, 90, 180, 270};
@@ -176,6 +186,14 @@ void RenderGenerator::render_a_frame(std::vector<Group> &groups, const Map &map)
         int y  = attack_events[i].y;
 
         fout << op << " " << id << " " << x << " " << y << std::endl;
+    }
+
+    // pheromones
+    for (int y = 0; y < height; y++) {
+        for (int x = 0; x < width; x++) {
+            float pheromone = map.get_pheromone(x, y);
+            fout << x << " " << y << " " << int(pheromone+0.5) << std::endl;
+        }
     }
 
     if (frame_ct++ > frame_per_file) {

@@ -137,7 +137,7 @@ Frame::~Frame() {
     }
 
     if (breads != nullptr) {
-        delete[](breads);
+        delete[](breads); 
         breads = nullptr;
     }
 }

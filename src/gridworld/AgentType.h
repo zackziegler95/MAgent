@@ -29,6 +29,7 @@ public:
     int speak_ability;
     float damage, trace, eat_ability, step_recover, kill_supply, food_supply;
     bool attack_in_group;
+    bool can_lay_pheromone;
 
     Reward step_reward, kill_reward, dead_penalty, attack_penalty;
 

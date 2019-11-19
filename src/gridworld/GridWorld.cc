@@ -85,7 +85,7 @@ void GridWorld::reset() {
         NUM_SEP_BUFFER = 1;
 
     // reset map
-    map.reset(width, height, food_mode);
+    map.reset(width, height, food_mode, pheromone_decay);
 
     if (counter_x != nullptr)
         delete [] counter_x;
@@ -138,6 +138,8 @@ void GridWorld::set_config(const char *key, void *p_value) {
         goal_mode = bvalue;
     else if (strequ(key, "embedding_size")) // embedding size in the observation.feature
         embedding_size = ivalue;
+    else if (strequ(key, "pheromone_decay"))
+        pheromone_decay = fvalue;
 
     else if (strequ(key, "render_dir"))     // the directory of saved videos
         render_generator.set_render("save_dir", strvalue);
@@ -515,6 +517,30 @@ void GridWorld::step(int *done) {
             }
         }
     }
+
+    // place pheromone
+    for (int i = 0; i < group_size; i++) {
+        Group &group = groups[i];
+        if (!group.get_type().can_lay_pheromone) {
+            continue;
+        }
+
+        std::vector<Agent*> &agents = group.get_agents();
+        size_t agent_size = agents.size();
+
+        #pragma omp parallel
+        for (int j = 0; j < agent_size; j++) {
+            Agent *agent = agents[j];
+
+            if (agent->is_dead())
+                continue;
+            
+            map.add_pheromone(agent);
+        }
+    }
+
+    // Decay pheromone
+    map.decay_pheromone();
 
     // starve
     LOG(TRACE) << "starve.  ";

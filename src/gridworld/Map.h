@@ -22,10 +22,11 @@ typedef float Food;
 
 class MapSlot {
 public:
-    MapSlot() : slot_type(BLANK), occupier(nullptr) {}
+    MapSlot() : slot_type(BLANK), occupier(nullptr), pheromone(0) {}
     SlotType slot_type;
     OccupyType occ_type;
     void *occupier;
+    float pheromone;
 };
 
 
@@ -40,7 +41,7 @@ public:
         delete [] channel_ids;
     }
 
-    void reset(int width, int height, bool food_mode);
+    void reset(int width, int height, bool food_mode, float pheromone_decay);
 
     Position get_random_blank(std::default_random_engine &random_engine, int width=1, int height=1);
 
@@ -62,11 +63,15 @@ public:
 
     Reward do_move(Agent *agent, const int delta[2]);
     Reward do_turn(Agent *agent, int wise);
+    void add_pheromone(Agent *agent);
+    void decay_pheromone();
 
     int get_align(Agent *agent);
 
     void render();
     void get_wall(std::vector<Position> &walls) const;
+
+    float get_pheromone(int x, int y) const;
 
 private:
     MapSlot* slots;
@@ -74,6 +79,7 @@ private:
     int w, h;
     const int wall_channel_id, food_channel_id;
     bool food_mode;
+    float pheromone_decay;
 
     /**
      * Utility

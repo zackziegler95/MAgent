@@ -40,6 +40,7 @@ AgentType::AgentType(int n, std::string name, const char **keys, float *values, 
 
     hear_radius = speak_radius = 0.0f;
     speak_ability = 0;
+    can_lay_pheromone = false;
 
     damage = trace = eat_ability = step_recover = kill_supply = food_supply = 0;
 
@@ -62,6 +63,7 @@ AgentType::AgentType(int n, std::string name, const char **keys, float *values, 
 
         AGENT_TYPE_SET_FLOAT(hear_radius);  AGENT_TYPE_SET_FLOAT(speak_radius);
         AGENT_TYPE_SET_INT(speak_ability);
+        AGENT_TYPE_SET_BOOL(can_lay_pheromone);
 
         AGENT_TYPE_SET_FLOAT(damage);       AGENT_TYPE_SET_FLOAT(trace);
         AGENT_TYPE_SET_FLOAT(eat_ability);

@@ -4,6 +4,7 @@ var _agentRangeCTX = undefined;
 var _agentBodyCTX = undefined;
 var _agentHPCTX = undefined;
 var _eventCTX = undefined;
+var _pheromoneCTX = undefined;
 var _statusStaticCTX = undefined;
 var _minimapCTX = undefined;
 var _minimapPostionCTX = undefined;
@@ -246,6 +247,7 @@ function run() {
                     _agentRangeCTX = document.getElementById('magnet-canvas-agent-range').getContext('2d');
                     _eventCTX = document.getElementById('magnet-canvas-event').getContext('2d');
                     _agentBodyCTX = document.getElementById('magnet-canvas-agent-body').getContext('2d');
+                    _pheromoneCTX = document.getElementById('magnet-canvas-pheromone').getContext('2d');
                     _staticCTX = document.getElementById('magnet-canvas-static').getContext('2d');
                     _agentHPCTX = document.getElementById('magnet-canvas-agent-hp').getContext('2d');
                     _minimapCTX = document.getElementById('magnet-canvas-minimap').getContext('2d');
@@ -527,6 +529,22 @@ function _drawAgent() {
     }
 }
 
+function _drawPheromones() {
+    _pheromoneCTX.clearRect(0, 0, _pheromoneCTX.canvas.width, _pheromoneCTX.canvas.height);
+    for (var i = 0; i < _mapData[2].length; i++) {
+        _pheromoneCTX.beginPath();
+        var val = Math.min(_mapData[2][i][2]/30, 1);
+        _pheromoneCTX.fillStyle = "rgba(0,0,0,"+val+")";
+        _pheromoneCTX.rect(
+            (_mapData[2][i][0] - _offsetX) * gridSize,
+            (_mapData[2][i][1] - _offsetY) * gridSize,
+            gridSize, gridSize
+        );
+        _pheromoneCTX.fill();
+    }
+    //console.log(_mapData[2]);
+}
+
 function _drawObstacles() {
     _staticCTX.clearRect(0, 0, _staticCTX.canvas.width, _staticCTX.canvas.height);
     _staticCTX.beginPath();
@@ -644,6 +662,9 @@ function _animate() {
             _agentBodyCTX.canvas.width = window.innerWidth;
             _agentBodyCTX.canvas.height = window.innerHeight;
 
+            _pheromoneCTX.canvas.width = window.innerWidth;
+            _pheromoneCTX.canvas.height = window.innerHeight;
+
             _agentHPCTX.canvas.width = window.innerWidth;
             _agentHPCTX.canvas.height = window.innerHeight;
 
@@ -671,6 +692,7 @@ function _animate() {
         if (_mapAnimateTick < TOTAL_STEP) {
             _drawAgent(_mapData[1], _mapLastData !== undefined ? _mapLastData[1] : undefined);
             _drawEvent();
+            _drawPheromones();
             _mapAnimateTick += _mapSpeed;
         } else {
             _mapProcessedImage++;
@@ -700,6 +722,7 @@ function _animate() {
         _agentRangeCTX.clearRect(0, 0, _agentRangeCTX.canvas.width, _agentRangeCTX.canvas.height);
         _agentHPCTX.clearRect(0, 0, _agentHPCTX.canvas.width, _agentHPCTX.canvas.height);
         _agentBodyCTX.clearRect(0, 0, _agentBodyCTX.canvas.width, _agentBodyCTX.canvas.height);
+        _pheromoneCTX.clearRect(0, 0, _pheromoneCTX.canvas.width, _pheromoneCTX.canvas.height);
         _eventCTX.clearRect(0, 0, _eventCTX.canvas.width, _eventCTX.canvas.height);
         _minimapPostionCTX.clearRect(0, 0, _minimapPostionCTX.canvas.width, _minimapPostionCTX.canvas.height);
     }
