@@ -5,6 +5,7 @@ Train agents to gather food
 import argparse
 import logging as log
 import time
+import random
 
 import magent
 #from magent.builtin.mx_model import DeepQNetwork as RLModel
@@ -12,21 +13,22 @@ from magent.builtin.tf_model import DeepQNetwork as RLModel
 # change this line to magent.builtin.tf_model to use tensorflow
 
 
-def load_config(size):
+def load_config(size, mm_mode, pheromone_mode, pheromone_decay):
     gw = magent.gridworld
     cfg = gw.Config()
 
     cfg.set({"map_width": size, "map_height": size})
-    cfg.set({"minimap_mode": False})
-    cfg.set({"pheromone_decay": 0.00001})
-
+    cfg.set({"minimap_mode": mm_mode})
+    cfg.set({"pheromone_mode": pheromone_mode}) # Can agents see pheromones? (always of its own group)
+    cfg.set({"pheromone_decay": pheromone_decay}) # 0.05
+ 
     agent = cfg.register_agent_type(
         name="agent",
         attr={'width': 1, 'length': 1, 'hp': 3, 'speed': 3,
               'view_range': gw.CircleRange(7), 'attack_range': gw.CircleRange(1),
               'damage': 6, 'step_recover': 0,
               'step_reward': -0.01,  'dead_penalty': -1, 'attack_penalty': -0.1,
-              'attack_in_group': 1, 'can_lay_pheromone': 1})
+              'attack_in_group': 1, 'can_lay_pheromone': int(pheromone_mode)}) # Whether or not a group lays pheromones
 
     food = cfg.register_agent_type(
         name='food',
@@ -45,7 +47,7 @@ def load_config(size):
     return cfg
 
 
-def generate_map(env, map_size, food_handle, handles):
+def generate_map(env, map_size, food_handle, handles, random_placement=False):
     center_x, center_y = map_size // 2, map_size // 2
 
     def add_square(pos, side, gap, offset_x=0, offset_y=0):
@@ -66,14 +68,24 @@ def generate_map(env, map_size, food_handle, handles):
 
     # food
     pos = []
-    add_square(pos, 4, 2, offset_x=15, offset_y=15)
+    
+    offset_x = 15
+    offset_y = 15
+    if random_placement:
+        if random.random() < 0.5:
+            offset_x *= -1
+        if random.random() < 0.5:
+            offset_y *= -1
+
+    add_square(pos, 4, 2, offset_x=offset_x, offset_y=offset_y)
     env.add_agents(food_handle, method="custom", pos=pos)
 
 
 def play_a_round(env, map_size, food_handle, handles, models, train_id=-1,
-                 print_every=10, record=False, render=False, eps=None):
+                 print_every=10, record=False, render=False, eps=None,
+                 random_placement=False):
     env.reset()
-    generate_map(env, map_size, food_handle, handles)
+    generate_map(env, map_size, food_handle, handles, random_placement=random_placement)
 
     step_ct = 0
     total_reward = 0
@@ -95,6 +107,9 @@ def play_a_round(env, map_size, food_handle, handles, models, train_id=-1,
         # take actions for every model
         for i in range(n):
             obs[i] = env.get_observation(handles[i])
+            #print('------------------------------')
+            #print(obs[i][0][0, :, :, 3])
+            #print(obs[i][0][0, :, :, 4])
             ids[i] = env.get_agent_id(handles[i])
             acts[i] = models[i].infer_action(obs[i], ids[i], policy='e_greedy', eps=eps)
             env.set_action(handles[i], acts[i])
@@ -168,6 +183,10 @@ if __name__ == "__main__":
     parser.add_argument("--name", type=str, default="gather2")
     parser.add_argument("--record", action="store_true")
     parser.add_argument("--eval", action="store_true")
+    parser.add_argument("--random_placement", action="store_true")
+    parser.add_argument("--mm_mode", action="store_true")
+    parser.add_argument("--pheromone_mode", action="store_true")
+    parser.add_argument("--pheromone_decay", type=float, default=0.05)
     args = parser.parse_args()
 
     # set logger
@@ -177,7 +196,7 @@ if __name__ == "__main__":
     log.getLogger('').addHandler(console)
 
     # init env
-    env = magent.GridWorld(load_config(size=args.map_size))
+    env = magent.GridWorld(load_config(args.map_size, args.mm_mode, args.pheromone_mode, args.pheromone_decay))
     env.set_render_dir("build/render/"+args.name)
 
     handles = env.get_handles()
@@ -189,7 +208,7 @@ if __name__ == "__main__":
     if args.eval:
         print("sample eval set...")
         env.reset()
-        generate_map(env, args.map_size, food_handle, player_handles)
+        generate_map(env, args.map_size, food_handle, player_handles, random_placement=args.random_placement)
         eval_obs = magent.utility.sample_observation(env, player_handles, 0, 2048, 500)
 
     # load models
@@ -222,7 +241,8 @@ if __name__ == "__main__":
                 model.load(save_dir, start_from)
                 play_a_round(env, args.map_size, food_handle, player_handles, models,
                              -1, record=True, render=False,
-                             print_every=args.print_every, eps=eps)
+                             print_every=args.print_every, eps=eps,
+                             random_placement=args.random_placement)
     else:
         # play
         start = time.time()
@@ -234,7 +254,8 @@ if __name__ == "__main__":
                     play_a_round(env, args.map_size, food_handle, player_handles, models,
                                  train_id, record=False,
                                  render=args.render or (k+1) % args.render_every == 0,
-                                 print_every=args.print_every, eps=eps)
+                                 print_every=args.print_every, eps=eps,
+                                 random_placement=args.random_placement)
             log.info("round %d\t loss: %.3f\t reward: %.2f\t value: %.3f\t pos_reward_ct: %d"
                      % (k, loss, reward, value, pos_reward_ct))
             print("round time %.2f  total time %.2f\n" % (time.time() - tic, time.time() - start))

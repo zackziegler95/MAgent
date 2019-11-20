@@ -130,7 +130,8 @@ void Map::average_pooling_group(float *group_buffer, int x0, int y0, int width, 
 void Map::extract_view(const Agent *agent, float *linear_buffer, const int *channel_trans, const Range *range,
                        int n_channel, int width, int height, int view_x_offset, int view_y_offset,
                        int view_left_top_x, int view_left_top_y,
-                       int view_right_bottom_x, int view_right_bottom_y) const {
+                       int view_right_bottom_x, int view_right_bottom_y,
+                       bool pheromone_mode, int pheromone_channel) const {
     // convert coordinates between absolute map and relative view
     Direction dir = agent->get_dir();
 
@@ -196,6 +197,9 @@ void Map::extract_view(const Agent *agent, float *linear_buffer, const int *chan
                 if (slots[pos_int].occupier != nullptr && slots[pos_int].occ_type == OCC_AGENT) { // is agent
                     Agent *p = ((Agent *) slots[pos_int].occupier);
                     buffer.at(view_y, view_x, channel_id + 1) = p->get_hp() / p->get_type().hp; // normalize hp
+                }
+                if (pheromone_mode) {
+                    buffer.at(view_y, view_x, pheromone_channel) = slots[pos_int].pheromone;
                 }
             }
 
@@ -412,7 +416,6 @@ void Map::add_pheromone(Agent *agent) {
 }
 
 void Map::decay_pheromone() {
-    #pragma omp parallel for
     for (int i = 0; i < w*h; i++) {
         slots[i].pheromone -= pheromone_decay;
         if (slots[i].pheromone < 0) {

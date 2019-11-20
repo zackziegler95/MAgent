@@ -144,12 +144,12 @@ void RenderGenerator::render_a_frame(std::vector<Group> &groups, const Map &map)
     }
     int num_attacks = (int)attack_events.size();
     
-    int num_pheromones = 0;
-    for (int i = 0; i < groups.size(); i++) {
+    int num_pheromones = width*height;
+    /*for (int i = 0; i < groups.size(); i++) {
         if (groups[i].get_type().can_lay_pheromone) {
             num_pheromones += width*height;
         }
-    }
+    }*/
 
     // frame info
     fout << "F" << " " << num_agents << " " << num_attacks << " " << num_pheromones << std::endl;

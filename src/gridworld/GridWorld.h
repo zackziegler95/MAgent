@@ -93,6 +93,7 @@ private:
     bool food_mode;      // default = False
     bool turn_mode;      // default = False
     bool minimap_mode;   // default = False
+    bool pheromone_mode;   // default = False
     bool goal_mode;      // default = False
     bool large_map_mode; // default = False
     bool mean_mode;      

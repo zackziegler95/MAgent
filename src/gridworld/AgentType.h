@@ -42,7 +42,7 @@ public:
 
     /***** system calculated setting *****/
     std::string name;
-    int n_channel; // obstacle, group1, group_hp1, group2, group_hp2
+    int n_channel; // obstacle, group1, group_hp1, group1_pheromones?, group2, group_hp2, group2_pheromones?
     Range *view_range, *attack_range, *move_range;
 
     int move_base, turn_base, attack_base;

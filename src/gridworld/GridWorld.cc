@@ -134,6 +134,8 @@ void GridWorld::set_config(const char *key, void *p_value) {
         turn_mode = bvalue;
     else if (strequ(key, "minimap_mode"))   // add minimap into observation
         minimap_mode = bvalue;
+    else if (strequ(key, "pheromone_mode"))   // add pheromone into observation
+        pheromone_mode = bvalue;
     else if (strequ(key, "goal_mode"))      // deprecated every agents has a specific goal
         goal_mode = bvalue;
     else if (strequ(key, "embedding_size")) // embedding size in the observation.feature
@@ -324,6 +326,13 @@ void GridWorld::get_observation(GroupHandle group, float **linear_buffers) {
                                                         group2channel(0),
                                                         type.n_channel,
                                                         n_group);
+    
+    /*
+    LOG(DEBUG) << group << groups[group].get_type().name << "\n";
+    for (int i = 0; i < channel_trans.size(); i++) {
+        LOG(DEBUG) << channel_trans[i] << " ";
+    }
+    LOG(DEBUG) << "\n";*/
 
     // build minimap
     NDPointer<float, 3> minimap(nullptr, {{view_height, view_width, n_group}});
@@ -341,21 +350,35 @@ void GridWorld::get_observation(GroupHandle group, float **linear_buffers) {
         // by agents
         #pragma omp parallel for
         for (int i = 0; i < n_group; i++) {
-            std::vector<Agent*> &agents_ = groups[i].get_agents();
-            AgentType type_ = agents[0]->get_type();
-            size_t total_ct = 0;
-            for (int j = 0; j < agents_.size(); j++) {
-                if (type_.can_absorb && agents_[j]->is_absorbed()) // ignore absorbed goal
+            // If both minimap_mode and pheromone_mode, the minimap becomes a pheromone_minimap for the group that can lay pheromones
+            if (pheromone_mode) {
+                if (!groups[i].get_type().can_lay_pheromone)
                     continue;
-                Position pos = agents_[j]->get_pos();
-                int x = pos.x / scale_w, y = pos.y / scale_h;
-                minimap.at(y, x, i)++;
-                total_ct++;
-            }
-            // scale
-            for (int j = 0; j < view_height; j++) {
-                for (int k = 0; k < view_width; k++) {
-                    minimap.at(j, k, i) /= total_ct;
+
+                for (int y = 0; y < height; y++) {
+                    for (int x = 0; x < width; x++) {
+                        float pheromone = map.get_pheromone(x, y);
+                        int x_mini = x / scale_w, y_mini = y / scale_h;
+                        minimap.at(y_mini, x_mini, i) += pheromone;
+                    }
+                }
+            } else {
+                std::vector<Agent*> &agents_ = groups[i].get_agents();
+                AgentType type_ = agents[0]->get_type();
+                size_t total_ct = 0;
+                for (int j = 0; j < agents_.size(); j++) {
+                    if (type_.can_absorb && agents_[j]->is_absorbed()) // ignore absorbed goal
+                        continue;
+                    Position pos = agents_[j]->get_pos();
+                    int x = pos.x / scale_w, y = pos.y / scale_h;
+                    minimap.at(y, x, i)++;
+                    total_ct++;
+                }
+                // scale
+                for (int j = 0; j < view_height; j++) {
+                    for (int k = 0; k < view_width; k++) {
+                        minimap.at(j, k, i) /= total_ct;
+                    }
                 }
             }
         }
@@ -366,9 +389,13 @@ void GridWorld::get_observation(GroupHandle group, float **linear_buffers) {
     for (int i = 0; i < agent_size; i++) {
         Agent *agent = agents[i];
         // get spatial view
+        int pheromone_channel = channel_trans[group2channel(agent->get_group())] + 2; // Local pheromone channel for agents in either group
+        if (minimap_mode) pheromone_channel++;
+        bool pheromones_enabled = agent->get_type().can_lay_pheromone && pheromone_mode;
         map.extract_view(agent, view_buffer.data + i*view_height*view_width*n_channel, &channel_trans[0], range,
                          n_channel, view_width, view_height, view_x_offset, view_y_offset,
-                         view_left_top_x, view_left_top_y, view_right_bottom_x, view_right_bottom_y);
+                         view_left_top_x, view_left_top_y, view_right_bottom_x, view_right_bottom_y,
+                         pheromones_enabled, pheromone_channel);
 
         if (minimap_mode) {
             int self_x = agent->get_pos().x / scale_w;
@@ -381,7 +408,8 @@ void GridWorld::get_observation(GroupHandle group, float **linear_buffers) {
                         view_buffer.at(i, k, l, minimap_channel)= minimap.at(k, l, j);
                     }
                 }
-                view_buffer.at(i, self_y, self_x, minimap_channel) += 1;
+                if (!pheromone_mode)
+                    view_buffer.at(i, self_y, self_x, minimap_channel) += 1;
             }
         }
 
@@ -517,7 +545,7 @@ void GridWorld::step(int *done) {
             }
         }
     }
-
+    
     // place pheromone
     for (int i = 0; i < group_size; i++) {
         Group &group = groups[i];
@@ -528,7 +556,6 @@ void GridWorld::step(int *done) {
         std::vector<Agent*> &agents = group.get_agents();
         size_t agent_size = agents.size();
 
-        #pragma omp parallel
         for (int j = 0; j < agent_size; j++) {
             Agent *agent = agents[j];
 
@@ -929,11 +956,11 @@ std::vector<int> GridWorld::make_channel_trans(
     for (int i = 0; i < groups.size(); i++) {
         int cycle_group = (group + i) % n_group;
         trans[group2channel(cycle_group)] = base;
-        if (minimap_mode) {
-            base += 3;
-        } else {
-            base += 2;
-        }
+
+        int scale = 2;
+        if (minimap_mode) scale++;
+        if (pheromone_mode) scale++;
+        base += scale;
     }
     return trans;
 }
@@ -944,6 +971,8 @@ int GridWorld::group2channel(GroupHandle group) {
     if (food_mode)
         base++;
     if (minimap_mode)
+        scale++;
+    if (pheromone_mode)
         scale++;
 
     return base + group * scale; // wall + additional + (has, hp) + (has, hp) + ...

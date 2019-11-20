@@ -48,7 +48,7 @@ class GridWorld(Environment):
             'food_mode': bool, 'turn_mode': bool, 'minimap_mode': bool,
             'revive_mode': bool, 'goal_mode': bool,
             'embedding_size': int,
-            'render_dir': str, 'pheromone_decay': float
+            'render_dir': str, 'pheromone_decay': float, 'pheromone_mode': bool
         }
 
         for key in config.config_dict:
