@@ -29,4 +29,5 @@ data = np.array(data)
 for index in sys.argv[2:]:
     index = int(index)
     plt.plot(data[:, index])
-plt.show()
+#plt.show()
+plt.savefig(filename+'.png')

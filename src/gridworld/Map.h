@@ -22,11 +22,12 @@ typedef float Food;
 
 class MapSlot {
 public:
-    MapSlot() : slot_type(BLANK), occupier(nullptr), pheromone(0) {}
+    MapSlot() : slot_type(BLANK), occupier(nullptr), pheromone1(0), pheromone2(0) {}
     SlotType slot_type;
     OccupyType occ_type;
     void *occupier;
-    float pheromone;
+    float pheromone1;
+    float pheromone2;
 };
 
 
@@ -72,7 +73,7 @@ public:
     void render();
     void get_wall(std::vector<Position> &walls) const;
 
-    float get_pheromone(int x, int y) const;
+    float get_pheromone(GroupHandle group, int x, int y) const;
 
 private:
     MapSlot* slots;

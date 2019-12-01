@@ -34,4 +34,5 @@ for i, row in enumerate(data):
     lin = np.log(lin + 1)
     plt.plot(lin, move_ave, color=hsv_to_rgb((0.33 - 0.33 * i / n,1,1)))
 
-plt.show()
+#plt.show()
+plt.savefig(filename+'.png')

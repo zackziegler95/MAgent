@@ -199,7 +199,10 @@ void Map::extract_view(const Agent *agent, float *linear_buffer, const int *chan
                     buffer.at(view_y, view_x, channel_id + 1) = p->get_hp() / p->get_type().hp; // normalize hp
                 }
                 if (pheromone_mode) {
-                    buffer.at(view_y, view_x, pheromone_channel) = slots[pos_int].pheromone;
+                    float pval = -1;
+                    if (agent->get_group() == 0) pval = slots[pos_int].pheromone1;
+                    else pval = slots[pos_int].pheromone2;
+                    buffer.at(view_y, view_x, pheromone_channel) = pval;
                 }
             }
 
@@ -412,20 +415,32 @@ Reward Map::do_turn(Agent *agent, int wise) {
 
 void Map::add_pheromone(Agent *agent) {
     PositionInteger pos_int = pos2int(agent->get_pos());
-    slots[pos_int].pheromone++;
+    if (agent->get_group() == 0) {
+        slots[pos_int].pheromone1++;
+    } else {
+        slots[pos_int].pheromone2++;
+    }
 }
 
 void Map::decay_pheromone() {
     for (int i = 0; i < w*h; i++) {
-        slots[i].pheromone -= pheromone_decay;
-        if (slots[i].pheromone < 0) {
-            slots[i].pheromone = 0;
+        slots[i].pheromone1 -= pheromone_decay;
+        if (slots[i].pheromone1 < 0) {
+            slots[i].pheromone1 = 0;
+        }
+        slots[i].pheromone2 -= pheromone_decay;
+        if (slots[i].pheromone2 < 0) {
+            slots[i].pheromone2 = 0;
         }
     }
 }
 
-float Map::get_pheromone(int x, int y) const {
-    return slots[pos2int(x, y)].pheromone;
+float Map::get_pheromone(GroupHandle group, int x, int y) const {
+    if (group == 0) {
+        return slots[pos2int(x, y)].pheromone1;
+    } else {
+        return slots[pos2int(x, y)].pheromone2;
+    }
 }
 
 int Map::get_align(Agent *agent) {
@@ -659,7 +674,7 @@ void Map::render() {
                 case BLANK:
                     if (s.occupier == nullptr) {
                         //buf[0] = ' ';
-                        std::string num = std::to_string(s.pheromone);
+                        std::string num = std::to_string(s.pheromone2);
                         buf[0] = num[0];
                         buf[1] = num[1];
                         buf[2] = num[2];

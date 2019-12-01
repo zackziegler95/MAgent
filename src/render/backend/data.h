@@ -25,7 +25,8 @@ struct AgentData : public render::Unique {
 
 struct BreadData : public render::Unique {
     Coordinate position;
-    int hp;
+    int hp1;
+    int hp2;
 };
 
 struct EventData : public render::Unique {

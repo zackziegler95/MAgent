@@ -12,3 +12,4 @@ save_video
 save_model
 
 *~
+*.png

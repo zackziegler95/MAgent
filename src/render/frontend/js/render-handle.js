@@ -357,7 +357,8 @@ function run() {
                             _mapData[2].push([
                                 parseInt(data[2][itBreads][0]),
                                 parseInt(data[2][itBreads][1]),
-                                parseInt(data[2][itBreads][2])
+                                parseInt(data[2][itBreads][2]),
+                                parseInt(data[2][itBreads][3])
                             ]);
                         }
                     }
@@ -534,7 +535,17 @@ function _drawPheromones() {
     for (var i = 0; i < _mapData[2].length; i++) {
         _pheromoneCTX.beginPath();
         var val = Math.min(_mapData[2][i][2]/30, 1);
-        _pheromoneCTX.fillStyle = "rgba(0,0,0,"+val+")";
+        _pheromoneCTX.fillStyle = "rgba(255,0,0,"+val+")";
+        _pheromoneCTX.rect(
+            (_mapData[2][i][0] - _offsetX) * gridSize,
+            (_mapData[2][i][1] - _offsetY) * gridSize,
+            gridSize, gridSize
+        );
+        _pheromoneCTX.fill();
+
+        _pheromoneCTX.beginPath();
+        var val = Math.min(_mapData[2][i][3]/30, 1);
+        _pheromoneCTX.fillStyle = "rgba(0,0,255,"+val+")";
         _pheromoneCTX.rect(
             (_mapData[2][i][0] - _offsetX) * gridSize,
             (_mapData[2][i][1] - _offsetY) * gridSize,
@@ -542,7 +553,6 @@ function _drawPheromones() {
         );
         _pheromoneCTX.fill();
     }
-    //console.log(_mapData[2]);
 }
 
 function _drawObstacles() {

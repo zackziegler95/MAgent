@@ -109,6 +109,8 @@ void GridWorld::reset() {
 
         groups[i].clear();
         groups[i].get_type().n_channel = group2channel((GroupHandle)groups.size());
+
+        //printf("%d %s %d", i, groups[i].get_type().name.c_str(), groups[i].get_type().can_lay_pheromone);
     }
 
     if (!reward_des_initialized) {
@@ -327,12 +329,14 @@ void GridWorld::get_observation(GroupHandle group, float **linear_buffers) {
                                                         type.n_channel,
                                                         n_group);
     
-    /*
+    /*   
     LOG(DEBUG) << group << groups[group].get_type().name << "\n";
     for (int i = 0; i < channel_trans.size(); i++) {
         LOG(DEBUG) << channel_trans[i] << " ";
     }
-    LOG(DEBUG) << "\n";*/
+    LOG(DEBUG) << "\n";
+    */
+
 
     // build minimap
     NDPointer<float, 3> minimap(nullptr, {{view_height, view_width, n_group}});
@@ -347,22 +351,22 @@ void GridWorld::get_observation(GroupHandle group, float **linear_buffers) {
         for (int i = 0; i < n_group; i++)
             group_sizes.push_back(groups[i].get_size() > 0 ? (int)groups[i].get_size() : 1);
 
-        // by agents
-        #pragma omp parallel for
-        for (int i = 0; i < n_group; i++) {
-            // If both minimap_mode and pheromone_mode, the minimap becomes a pheromone_minimap for the group that can lay pheromones
-            if (pheromone_mode) {
-                if (!groups[i].get_type().can_lay_pheromone)
-                    continue;
-
+        
+        if (pheromone_mode) {
+            if (groups[group].get_type().can_lay_pheromone) {
                 for (int y = 0; y < height; y++) {
                     for (int x = 0; x < width; x++) {
-                        float pheromone = map.get_pheromone(x, y);
+                        float pheromone = map.get_pheromone(group, x, y);
                         int x_mini = x / scale_w, y_mini = y / scale_h;
-                        minimap.at(y_mini, x_mini, i) += pheromone;
+                        minimap.at(y_mini, x_mini, group) += pheromone;
                     }
                 }
-            } else {
+            }
+        } else {
+            // by agents
+            #pragma omp parallel for
+            for (int i = 0; i < n_group; i++) {
+                // If both minimap_mode and pheromone_mode, the minimap becomes a pheromone_minimap for the group that can lay pheromones
                 std::vector<Agent*> &agents_ = groups[i].get_agents();
                 AgentType type_ = agents[0]->get_type();
                 size_t total_ct = 0;
@@ -568,6 +572,7 @@ void GridWorld::step(int *done) {
 
     // Decay pheromone
     map.decay_pheromone();
+    //map.render();
 
     // starve
     LOG(TRACE) << "starve.  ";

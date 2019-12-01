@@ -24,15 +24,15 @@ def load_config(size, mm_mode, pheromone_mode, pheromone_decay):
  
     agent = cfg.register_agent_type(
         name="agent",
-        attr={'width': 1, 'length': 1, 'hp': 3, 'speed': 3,
+        attr={'width': 1, 'length': 1, 'hp': 1, 'speed': 3,
               'view_range': gw.CircleRange(7), 'attack_range': gw.CircleRange(1),
-              'damage': 6, 'step_recover': 0,
+              'damage': 1, 'step_recover': 0,
               'step_reward': -0.01,  'dead_penalty': -1, 'attack_penalty': -0.1,
-              'attack_in_group': 1, 'can_lay_pheromone': int(pheromone_mode)}) # Whether or not a group lays pheromones
+              'attack_in_group': 0, 'can_lay_pheromone': int(pheromone_mode)}) # Whether or not a group lays pheromones
 
     food = cfg.register_agent_type(
         name='food',
-        attr={'width': 1, 'length': 1, 'hp': 25, 'speed': 0,
+        attr={'width': 1, 'length': 1, 'hp': 50, 'speed': 0,
               'view_range': gw.CircleRange(1), 'attack_range': gw.CircleRange(0),
               'kill_reward': 5})
 
@@ -198,6 +198,7 @@ if __name__ == "__main__":
     # init env
     env = magent.GridWorld(load_config(args.map_size, args.mm_mode, args.pheromone_mode, args.pheromone_decay))
     env.set_render_dir("build/render/"+args.name)
+    env.set_seed(123)
 
     handles = env.get_handles()
     food_handle = handles[0]
@@ -249,7 +250,7 @@ if __name__ == "__main__":
         train_id = 0 if args.train else -1
         for k in range(start_from, start_from + args.n_round):
             tic = time.time()
-            eps = magent.utility.piecewise_decay(k, [0, 400, 1000], [1.0, 0.2, 0.05]) if not args.greedy else 0
+            eps = magent.utility.piecewise_decay(k, [0, 10000, 30000, 60000], [0.9, 0.4, 0.2, 0.05]) if not args.greedy else 0
             loss, reward, value, pos_reward_ct = \
                     play_a_round(env, args.map_size, food_handle, player_handles, models,
                                  train_id, record=False,

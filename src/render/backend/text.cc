@@ -180,7 +180,8 @@ std::string Text::encode(const magent::render::Frame &frame,
 std::string Text::encode(const magent::render::BreadData &bread) const {
     return std::to_string(bread.position.x)
            + ' ' + std::to_string(bread.position.y)
-           + ' ' + std::to_string(bread.hp);
+           + ' ' + std::to_string(bread.hp1)
+           + ' ' + std::to_string(bread.hp2);
 }
 
 } // namespace render

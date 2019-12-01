@@ -113,7 +113,7 @@ void Frame::load(std::istream & handle) {
     breads = new render::BreadData[nBreads];
     try{
         for (unsigned int i = 0; i < nBreads; i++) {
-            if (!(handle >> breads[i].position.x >> breads[i].position.y >> breads[i].hp)) {
+            if (!(handle >> breads[i].position.x >> breads[i].position.y >> breads[i].hp1 >> breads[i].hp2)) {
                 throw RenderException("cannot read the next food, map file may be broken");
             }
         }

@@ -191,8 +191,12 @@ void RenderGenerator::render_a_frame(std::vector<Group> &groups, const Map &map)
     // pheromones
     for (int y = 0; y < height; y++) {
         for (int x = 0; x < width; x++) {
-            float pheromone = map.get_pheromone(x, y);
-            fout << x << " " << y << " " << int(pheromone+0.5) << std::endl;
+            fout << x << " " << y << " ";
+            for (int i  = 0; i < groups.size(); i++) {
+                float pheromone = map.get_pheromone(i, x, y);
+                fout << int(pheromone+0.5) << " ";
+            }
+            fout << std::endl;
         }
     }
 
